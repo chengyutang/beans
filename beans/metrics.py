@@ -84,17 +84,16 @@ class AveragePrecision:
 
     def reset(self):
         """Resets the meter with empty member variables"""
-        self.scores = torch.tensor(torch.FloatStorage(), dtype=torch.float32, requires_grad=False)
-        self.targets = torch.tensor(torch.LongStorage(), dtype=torch.int64, requires_grad=False)
-        self.weights = torch.tensor(torch.FloatStorage(), dtype=torch.float32, requires_grad=False)
+        self.scores = torch.empty(0, dtype=torch.float32)
+        self.targets = torch.empty(0, dtype=torch.int64)
+        self.weights = torch.empty(0, dtype=torch.float32)
 
     def update(self, output, target, weight=None):
         """
         Args:
             output (Tensor): NxK tensor that for each of the N examples
                 indicates the probability of the example belonging to each of
-                the K classes, according to the model. The probabilities should
-                sum to one over all classes
+                the K classes, according to the model.
             target (Tensor): binary NxK tensort that encodes which of the K
                 classes are associated with the N-th input
                     (eg: a row [0, 1, 0, 1] indicates that the example is
@@ -145,15 +144,11 @@ class AveragePrecision:
                                                + output.size(0)))
 
         # store scores and targets
-        offset = self.scores.size(0) if self.scores.dim() > 0 else 0
-        self.scores.resize_(offset + output.size(0), output.size(1))
-        self.targets.resize_(offset + target.size(0), target.size(1))
-        self.scores.narrow(0, offset, output.size(0)).copy_(output.detach())
-        self.targets.narrow(0, offset, target.size(0)).copy_(target.detach())
+        self.scores = torch.cat((self.scores, output.detach().cpu()), dim=0)
+        self.targets = torch.cat((self.targets, target.detach().cpu()), dim=0)
 
         if weight is not None:
-            self.weights.resize_(offset + weight.size(0))
-            self.weights.narrow(0, offset, weight.size(0)).copy_(weight)
+            self.weights = torch.cat((self.weights, weight), dim=0)
 
     def get_metric(self):
         """Returns the model's average precision for each class
