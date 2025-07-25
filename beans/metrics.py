@@ -133,16 +133,6 @@ class AveragePrecision:
             assert target.size(1) == self.targets.size(1), \
                 'dimensions for output should match previously added examples.'
 
-        # make sure storage is of sufficient size
-        if self.scores.storage().size() < self.scores.numel() + output.numel():
-            new_size = math.ceil(self.scores.storage().size() * 1.5)
-            new_weight_size = math.ceil(self.weights.storage().size() * 1.5)
-            self.scores.storage().resize_(int(new_size + output.numel()))
-            self.targets.storage().resize_(int(new_size + output.numel()))
-            if weight is not None:
-                self.weights.storage().resize_(int(new_weight_size
-                                               + output.size(0)))
-
         # store scores and targets
         self.scores = torch.cat((self.scores, output.detach().cpu()), dim=0)
         self.targets = torch.cat((self.targets, target.detach().cpu()), dim=0)
